@@ -175,8 +175,9 @@
                 cell.dataset.col = col;
 
                 if (board[row][col].mine) {
-                    cell.textContent = 'M';
+                    //cell.textContent = 'M';
                     cell.classList.add('mine');
+                    cell.addEventListener('click', () => showChoices(row, col));
                 } else {
                     cell.addEventListener('click', () => showChoices(row, col));
                 }
@@ -185,11 +186,26 @@
             }
         }
     }
-
+    let choicesContainer = null;
     function showChoices(row, col) {
+        if (choicesContainer) {
+            choicesContainer.remove();
+        }
         if (gameEnded) return;
+        // Prevent revealing a cell that is already revealed
+        if (board[row][col].revealed) return;
+        // if mine is clicked, add miss and revel the cell
+        if (board[row][col].mine) {
+            misses++;
+            board[row][col].revealed = true;
+            const cellElement = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            cellElement.classList.add('revealed');
+            cellElement.textContent = 'M';
+            checkGameEnd();
+            return;
+        }
 
-        const choicesContainer = document.createElement('div');
+        choicesContainer = document.createElement('div');
         choicesContainer.classList.add('choices-container');
         const cell = board[row][col];
 
@@ -214,7 +230,6 @@
 
         // Disable background interactions
         gameBoardElement.classList.add('disabled');
-
         document.body.appendChild(choicesContainer);
     }
 
