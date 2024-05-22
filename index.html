@@ -67,6 +67,31 @@
         .cell.number-8 {
             color: gray;
         }
+
+        .choices-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            background: #ffffff4a;
+        }
+
+        .choices-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #ffffff4a;
+
+            .hidden {
+                display: none;
+            }
+        }
     </style>
 </head>
 
@@ -74,56 +99,72 @@
     <h1>Number Minesweeper</h1>
     <div id="game-board"></div>
     <script>
-        const boardSize = 10;
-const mineCount = 20;
-const board = [];
-const gameBoardElement = document.getElementById('game-board');
+    let misses = 0;
+    const boardSize = 10;
+    const mineCount = 20;
+    const board = [];
+    const gameBoardElement = document.getElementById('game-board');
+    const stopwatchElement = document.getElementById('stopwatch');
+    let timer;
+    let seconds = 0;
+    let gameEnded = false;
 
-function initBoard() {
-    for (let row = 0; row < boardSize; row++) {
-        const rowArray = [];
-        for (let col = 0; col < boardSize; col++) {
-            rowArray.push({
-                mine: false,
-                revealed: false,
-                number: 0,
-            });
-        }
-        board.push(rowArray);
+    function startStopwatch() {
+        timer = setInterval(() => {
+            seconds++;
+            stopwatchElement.textContent = `Time: ${seconds}s`;
+        }, 1000);
     }
-}
 
-function placeMines() {
-    let placedMines = 0;
-    while (placedMines < mineCount) {
-        const row = Math.floor(Math.random() * boardSize);
-        const col = Math.floor(Math.random() * boardSize);
-        if (!board[row][col].mine) {
-            board[row][col].mine = true;
-            placedMines++;
+    function stopStopwatch() {
+        clearInterval(timer);
+    }
+
+    function initBoard() {
+        for (let row = 0; row < boardSize; row++) {
+            const rowArray = [];
+            for (let col = 0; col < boardSize; col++) {
+                rowArray.push({
+                    mine: false,
+                    revealed: false,
+                    number: 0,
+                });
+            }
+            board.push(rowArray);
         }
     }
-}
 
-function calculateNumbers() {
-    for (let row = 0; row < boardSize; row++) {
-        for (let col = 0; col < boardSize; col++) {
+    function placeMines() {
+        let placedMines = 0;
+        while (placedMines < mineCount) {
+            const row = Math.floor(Math.random() * boardSize);
+            const col = Math.floor(Math.random() * boardSize);
             if (!board[row][col].mine) {
-                let count = 0;
-                for (let i = -1; i <= 1; i++) {
-                    for (let j = -1; j <= 1; j++) {
-                        const newRow = row + i;
-                        const newCol = col + j;
-                        if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol].mine) {
-                            count++;
-                        }
-                    }
-                }
-                board[row][col].number = count;
+                board[row][col].mine = true;
+                placedMines++;
             }
         }
     }
-}
+
+    function calculateNumbers() {
+        for (let row = 0; row < boardSize; row++) {
+            for (let col = 0; col < boardSize; col++) {
+                if (!board[row][col].mine) {
+                    let count = 0;
+                    for (let i = -1; i <= 1; i++) {
+                        for (let j = -1; j <= 1; j++) {
+                            const newRow = row + i;
+                            const newCol = col + j;
+                            if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol].mine) {
+                                count++;
+                            }
+                        }
+                    }
+                    board[row][col].number = count;
+                }
+            }
+        }
+    }
 
     function createBoard() {
         for (let row = 0; row < boardSize; row++) {
@@ -137,7 +178,7 @@ function calculateNumbers() {
                     cell.textContent = 'M';
                     cell.classList.add('mine');
                 } else {
-                    cell.addEventListener('click', () => promptUserForNumber(row, col));
+                    cell.addEventListener('click', () => showChoices(row, col));
                 }
 
                 gameBoardElement.appendChild(cell);
@@ -145,14 +186,50 @@ function calculateNumbers() {
         }
     }
 
-    function promptUserForNumber(row, col) {
-        const userInput = prompt("Enter the number of adjacent mines:");
+    function showChoices(row, col) {
+        if (gameEnded) return;
+
+        const choicesContainer = document.createElement('div');
+        choicesContainer.classList.add('choices-container');
+        const cell = board[row][col];
+
+        const correctChoice = cell.number;
+        const choices = [correctChoice];
+
+        while (choices.length < 3) {
+            const randomChoice = Math.floor(Math.random() * 9);
+            if (!choices.includes(randomChoice)) {
+                choices.push(randomChoice);
+            }
+        }
+
+        choices.sort(() => Math.random() - 0.5); // Shuffle choices
+
+        choices.forEach(choice => {
+            const choiceButton = document.createElement('button');
+            choiceButton.textContent = choice;
+            choiceButton.addEventListener('click', () => handleChoice(row, col, choice));
+            choicesContainer.appendChild(choiceButton);
+        });
+
+        // Disable background interactions
+        gameBoardElement.classList.add('disabled');
+
+        document.body.appendChild(choicesContainer);
+    }
+
+    function handleChoice(row, col, choice) {
         const cell = board[row][col];
         const cellElement = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
 
         if (cell.revealed) return;
 
-        if (parseInt(userInput) === cell.number) {
+        document.querySelector('.choices-container').remove(); // Remove choices after selection
+
+        // Enable background interactions
+        gameBoardElement.classList.remove('disabled');
+
+        if (choice === cell.number) {
             cell.revealed = true;
             cellElement.classList.add('revealed');
             cellElement.textContent = cell.number;
@@ -163,20 +240,42 @@ function calculateNumbers() {
                         const newRow = row + i;
                         const newCol = col + j;
                         if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize) {
-                            promptUserForNumber(newRow, newCol);
+                            showChoices(newRow, newCol);
                         }
                     }
                 }
             }
+            checkGameEnd();
         } else {
-            alert("Incorrect number!");
+            misses++;
         }
     }
-initBoard();
-placeMines();
-calculateNumbers();
-createBoard();
-</script>
+
+    function checkGameEnd() {
+        let allCellsRevealed = true;
+        for (let row = 0; row < boardSize; row++) {
+            for (let col = 0; col < boardSize; col++) {
+                if (!board[row][col].mine && !board[row][col].revealed) {
+                    allCellsRevealed = false;
+                    break;
+                }
+            }
+        }
+
+        if (allCellsRevealed) {
+            stopStopwatch();
+            gameEnded = true;
+            alert(`Congratulations! You completed the game in ${seconds} seconds. ${misses} misses.`);
+        }
+    }
+
+    initBoard();
+    placeMines();
+    calculateNumbers();
+    createBoard();
+    startStopwatch();
+
+    </script>
 </body>
 
 </html>
