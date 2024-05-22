@@ -184,9 +184,7 @@
     }
     var choicesContainer = null;
     function showChoices(row, col) {
-        console.log(choicesContainer);
         if (choicesContainer != null) {
-            alert('Please make a choice first');
             return;
         }
         if (gameEnded) return;
@@ -222,8 +220,11 @@
         choicesContainer.classList.add('choices-container');
         const cell = board[row][col];
 
-        for (let i = 1; i <= 10; i++) {
-            let num = i % 10;
+        for (let i = 1; i <= 12; i++) {
+            let num = i;
+            if(i >= 10){
+                num = 0;
+            }
             const button = document.createElement('button');
             button.textContent = num;
             button.addEventListener('click', () => handleChoice(row, col, num));
