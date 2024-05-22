@@ -76,7 +76,6 @@
             border: 1px solid #ccc;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            display: flex;
             gap: 10px;
             z-index: 1000;
             background: #ffffff4a;
@@ -87,16 +86,13 @@
             font-size: 16px;
             cursor: pointer;
             background: #ffffff4a;
-
-            .hidden {
-                display: none;
-            }
         }
     </style>
 </head>
 
 <body>
     <h1>Number Minesweeper</h1>
+    <div id="stopwatch">Time: 0s</div>
     <div id="game-board"></div>
     <script>
     let misses = 0;
@@ -186,10 +182,12 @@
             }
         }
     }
-    let choicesContainer = null;
+    var choicesContainer = null;
     function showChoices(row, col) {
-        if (choicesContainer) {
-            choicesContainer.remove();
+        console.log(choicesContainer);
+        if (choicesContainer != null) {
+            alert('Please make a choice first');
+            return;
         }
         if (gameEnded) return;
         // Prevent revealing a cell that is already revealed
@@ -200,46 +198,52 @@
             board[row][col].revealed = true;
             const cellElement = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             cellElement.classList.add('revealed');
-            cellElement.textContent = 'M';
+            //mine을 누르면 근처 3x3으로 숫자를 보여줌
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    const newRow = row + i;
+                    const newCol = col + j;
+                    if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize) {
+                        const cellElement2 = document.querySelector(`.cell[data-row="${row + i}"][data-col="${col + j}"]`);
+                        cellElement2.classList.add('revealed');
+                        if(board[row + i][col + j].mine){
+                            cellElement2.textContent = 'M';
+                        }else{
+                            cellElement2.textContent = board[row + i][col + j].number;
+                        }
+                    }
+                }
+            }
             checkGameEnd();
             return;
         }
-
         choicesContainer = document.createElement('div');
+        document.querySelector("body").appendChild(choicesContainer);
         choicesContainer.classList.add('choices-container');
         const cell = board[row][col];
 
-        const correctChoice = cell.number;
-        const choices = [correctChoice];
-
-        while (choices.length < 3) {
-            const randomChoice = Math.floor(Math.random() * 9);
-            if (!choices.includes(randomChoice)) {
-                choices.push(randomChoice);
+        for (let i = 1; i <= 10; i++) {
+            let num = i % 10;
+            const button = document.createElement('button');
+            button.textContent = num;
+            button.addEventListener('click', () => handleChoice(row, col, num));
+            choicesContainer.appendChild(button);
+            if((i)%3 == 0){
+                const br = document.createElement('br');
+                choicesContainer.appendChild(br);
             }
         }
-
-        choices.sort(() => Math.random() - 0.5); // Shuffle choices
-
-        choices.forEach(choice => {
-            const choiceButton = document.createElement('button');
-            choiceButton.textContent = choice;
-            choiceButton.addEventListener('click', () => handleChoice(row, col, choice));
-            choicesContainer.appendChild(choiceButton);
-        });
-
-        // Disable background interactions
-        gameBoardElement.classList.add('disabled');
-        document.body.appendChild(choicesContainer);
     }
 
     function handleChoice(row, col, choice) {
+        if(choicesContainer != null){
+            choicesContainer.remove();
+            choicesContainer = null;
+        }
         const cell = board[row][col];
         const cellElement = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
 
         if (cell.revealed) return;
-
-        document.querySelector('.choices-container').remove(); // Remove choices after selection
 
         // Enable background interactions
         gameBoardElement.classList.remove('disabled');
@@ -264,6 +268,7 @@
         } else {
             misses++;
         }
+
     }
 
     function checkGameEnd() {
@@ -286,8 +291,8 @@
 
     initBoard();
     placeMines();
-    calculateNumbers();
     createBoard();
+    calculateNumbers();
     startStopwatch();
 
     </script>
