@@ -78,7 +78,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             gap: 10px;
             z-index: 1000;
-            background: #ffffff4a;
+            background: #ffffff;
         }
 
         .choices-container button {
@@ -87,217 +87,257 @@
             cursor: pointer;
             background: #ffffff4a;
         }
+
+        #difficulty-selector {
+            margin-bottom: 20px;
+        }
+
+        #game-info {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        #restart-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
-    <h1>Number Minesweeper</h1>
+    <h1>Reverse Minesweeper</h1>
+    <div id="difficulty-selector">
+        <button onclick="setDifficulty('easy')">Easy</button>
+        <button onclick="setDifficulty('normal')">Normal</button>
+        <button onclick="setDifficulty('hard')">Hard</button>
+    </div>
     <div id="stopwatch">Time: 0s</div>
     <div id="game-board"></div>
+    <div id="game-info"></div>
+    <button id="restart-button" onclick="restartGame()">Restart Game</button>
     <script>
-    let misses = 0;
-    const boardSize = 10;
-    const mineCount = 20;
-    const board = [];
-    const gameBoardElement = document.getElementById('game-board');
-    const stopwatchElement = document.getElementById('stopwatch');
-    let timer;
-    let seconds = 0;
-    let gameEnded = false;
+        let misses = 0;
+        const boardSize = 10;
+        let mineCount = 30; // Default to Normal difficulty
+        let difficulty = 'normal';
+        const board = [];
+        const gameBoardElement = document.getElementById('game-board');
+        const stopwatchElement = document.getElementById('stopwatch');
+        const gameInfoElement = document.getElementById('game-info');
+        let timer;
+        let seconds = 0;
+        let gameEnded = false;
 
-    function startStopwatch() {
-        timer = setInterval(() => {
-            seconds++;
+        function setDifficulty(diff) {
+            difficulty = diff;
+            switch (diff) {
+                case 'easy':
+                    mineCount = 50;
+                    break;
+                case 'normal':
+                    mineCount = 30;
+                    break;
+                case 'hard':
+                    mineCount = 10;
+                    break;
+            }
+            restartGame();
+        }
+
+        function startStopwatch() {
+            stopStopwatch();
+            seconds = 0;
             stopwatchElement.textContent = `Time: ${seconds}s`;
-        }, 1000);
-    }
-
-    function stopStopwatch() {
-        clearInterval(timer);
-    }
-
-    function initBoard() {
-        for (let row = 0; row < boardSize; row++) {
-            const rowArray = [];
-            for (let col = 0; col < boardSize; col++) {
-                rowArray.push({
-                    mine: false,
-                    revealed: false,
-                    number: 0,
-                });
-            }
-            board.push(rowArray);
+            timer = setInterval(() => {
+                seconds++;
+                stopwatchElement.textContent = `Time: ${seconds}s`;
+            }, 1000);
         }
-    }
 
-    function placeMines() {
-        let placedMines = 0;
-        while (placedMines < mineCount) {
-            const row = Math.floor(Math.random() * boardSize);
-            const col = Math.floor(Math.random() * boardSize);
-            if (!board[row][col].mine) {
-                board[row][col].mine = true;
-                placedMines++;
+        function stopStopwatch() {
+            clearInterval(timer);
+        }
+
+        function initBoard() {
+            board.length = 0;
+            for (let row = 0; row < boardSize; row++) {
+                const rowArray = [];
+                for (let col = 0; col < boardSize; col++) {
+                    rowArray.push({
+                        mine: false,
+                        revealed: false,
+                        number: 0,
+                    });
+                }
+                board.push(rowArray);
             }
         }
-    }
 
-    function calculateNumbers() {
-        for (let row = 0; row < boardSize; row++) {
-            for (let col = 0; col < boardSize; col++) {
+        function placeMines() {
+            let placedMines = 0;
+            while (placedMines < mineCount) {
+                const row = Math.floor(Math.random() * boardSize);
+                const col = Math.floor(Math.random() * boardSize);
                 if (!board[row][col].mine) {
-                    let count = 0;
-                    for (let i = -1; i <= 1; i++) {
-                        for (let j = -1; j <= 1; j++) {
-                            const newRow = row + i;
-                            const newCol = col + j;
-                            if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol].mine) {
-                                count++;
+                    board[row][col].mine = true;
+                    placedMines++;
+                }
+            }
+        }
+
+        function calculateNumbers() {
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    if (!board[row][col].mine) {
+                        let count = 0;
+                        for (let i = -1; i <= 1; i++) {
+                            for (let j = -1; j <= 1; j++) {
+                                const newRow = row + i;
+                                const newCol = col + j;
+                                if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol].mine) {
+                                    count++;
+                                }
                             }
                         }
+                        board[row][col].number = count;
                     }
-                    board[row][col].number = count;
                 }
             }
         }
-    }
 
-    function createBoard() {
-        for (let row = 0; row < boardSize; row++) {
-            for (let col = 0; col < boardSize; col++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.dataset.row = row;
-                cell.dataset.col = col;
+        function createBoard() {
+            gameBoardElement.innerHTML = '';
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
 
-                if (board[row][col].mine) {
-                    //cell.textContent = 'M';
-                    cell.classList.add('mine');
-                    cell.addEventListener('click', () => showChoices(row, col));
-                } else {
-                    cell.addEventListener('click', () => showChoices(row, col));
+                    if (board[row][col].mine) {
+                        cell.classList.add('mine');
+                        cell.addEventListener('click', () => showChoices(row, col));
+                    } else {
+                        cell.addEventListener('click', () => showChoices(row, col));
+                    }
+
+                    gameBoardElement.appendChild(cell);
                 }
-
-                gameBoardElement.appendChild(cell);
             }
         }
-    }
-    var choicesContainer = null;
-    function showChoices(row, col) {
-        if (choicesContainer != null) {
-            return;
-        }
-        if (gameEnded) return;
-        // Prevent revealing a cell that is already revealed
-        if (board[row][col].revealed) return;
-        // if mine is clicked, add miss and revel the cell
-        if (board[row][col].mine) {
-            misses++;
+
+        let choicesContainer = null;
+        function revealArea(row, col) {
+            if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) return;
+            if (board[row][col].revealed) return;
+
             board[row][col].revealed = true;
             const cellElement = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             cellElement.classList.add('revealed');
-            //mine을 누르면 근처 3x3으로 숫자를 보여줌
-            for (let i = -1; i <= 1; i++) {
-                for (let j = -1; j <= 1; j++) {
-                    const newRow = row + i;
-                    const newCol = col + j;
-                    if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize) {
-                        const cellElement2 = document.querySelector(`.cell[data-row="${row + i}"][data-col="${col + j}"]`);
-                        cellElement2.classList.add('revealed');
-                        if(board[row + i][col + j].mine){
-                            cellElement2.textContent = 'M';
-                        }else{
-                            cellElement2.textContent = board[row + i][col + j].number;
-                        }
-                    }
-                }
-            }
-            checkGameEnd();
-            return;
-        }
-        choicesContainer = document.createElement('div');
-        document.querySelector("body").appendChild(choicesContainer);
-        choicesContainer.classList.add('choices-container');
-        const cell = board[row][col];
 
-        for (let i = 1; i <= 12; i++) {
-            let num = i;
-            if(i >= 10){
-                num = 0;
-            }
-            const button = document.createElement('button');
-            button.textContent = num;
-            button.addEventListener('click', () => handleChoice(row, col, num));
-            choicesContainer.appendChild(button);
-            if((i)%3 == 0){
-                const br = document.createElement('br');
-                choicesContainer.appendChild(br);
-            }
-        }
-    }
-
-    function handleChoice(row, col, choice) {
-        if(choicesContainer != null){
-            choicesContainer.remove();
-            choicesContainer = null;
-        }
-        const cell = board[row][col];
-        const cellElement = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-
-        if (cell.revealed) return;
-
-        // Enable background interactions
-        gameBoardElement.classList.remove('disabled');
-
-        if (choice === cell.number) {
-            cell.revealed = true;
-            cellElement.classList.add('revealed');
-            cellElement.textContent = cell.number;
-
-            /*
-            if (cell.number === 0) {
+            if (board[row][col].mine) {
+                cellElement.textContent = 'M';
                 for (let i = -1; i <= 1; i++) {
                     for (let j = -1; j <= 1; j++) {
-                        const newRow = row + i;
-                        const newCol = col + j;
-                        if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize) {
-                            showChoices(newRow, newCol);
-                        }
+                        revealArea(row + i, col + j);
+                    }
+                }
+            } else {
+                cellElement.textContent = board[row][col].number;
+                cellElement.classList.add(`number-${board[row][col].number}`);
+            }
+        }
+
+        function showChoices(row, col) {
+            if (choicesContainer != null) {
+                return;
+            }
+            if (gameEnded) return;
+            if (board[row][col].revealed) return;
+            if (board[row][col].mine) {
+                misses++;
+                revealArea(row, col);
+                checkGameEnd();
+                return;
+            }
+            choicesContainer = document.createElement('div');
+            document.querySelector("body").appendChild(choicesContainer);
+            choicesContainer.classList.add('choices-container');
+            const cell = board[row][col];
+
+            for (let i = 1; i <= 12; i++) {
+                let num = i;
+                if (i >= 10) {
+                    num = 0;
+                }
+                const button = document.createElement('button');
+                button.textContent = num;
+                button.addEventListener('click', () => handleChoice(row, col, num));
+                choicesContainer.appendChild(button);
+                if ((i) % 3 == 0) {
+                    const br = document.createElement('br');
+                    choicesContainer.appendChild(br);
+                }
+            }
+        }
+
+        function handleChoice(row, col, choice) {
+            if (choicesContainer != null) {
+                choicesContainer.remove();
+                choicesContainer = null;
+            }
+            const cell = board[row][col];
+            const cellElement = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+
+            if (cell.revealed) return;
+
+            gameBoardElement.classList.remove('disabled');
+
+            if (choice === cell.number) {
+                cell.revealed = true;
+                cellElement.classList.add('revealed');
+                cellElement.textContent = cell.number;
+                cellElement.classList.add(`number-${cell.number}`);
+                checkGameEnd();
+            } else {
+                misses++;
+            }
+        }
+
+        function checkGameEnd() {
+            let allCellsRevealed = true;
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    if (!board[row][col].mine && !board[row][col].revealed) {
+                        allCellsRevealed = false;
+                        break;
                     }
                 }
             }
-            */
-            checkGameEnd();
-        } else {
-            misses++;
-        }
 
-    }
-
-    function checkGameEnd() {
-        let allCellsRevealed = true;
-        for (let row = 0; row < boardSize; row++) {
-            for (let col = 0; col < boardSize; col++) {
-                if (!board[row][col].mine && !board[row][col].revealed) {
-                    allCellsRevealed = false;
-                    break;
-                }
+            if (allCellsRevealed) {
+                stopStopwatch();
+                gameEnded = true;
+                const message = `Congratulations! You completed the game in ${seconds} seconds with ${misses} misses. Difficulty: ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}`;
+                alert(message);
+                gameInfoElement.textContent = message;
             }
         }
 
-        if (allCellsRevealed) {
-            stopStopwatch();
-            gameEnded = true;
-            alert(`Congratulations! You completed the game in ${seconds} seconds. ${misses} misses.`);
+        function restartGame() {
+            gameEnded = false;
+            misses = 0;
+            initBoard();
+            placeMines();
+            createBoard();
+            calculateNumbers();
+            startStopwatch();
+            gameInfoElement.textContent = '';
         }
-    }
 
-    initBoard();
-    placeMines();
-    createBoard();
-    calculateNumbers();
-    startStopwatch();
-
+        restartGame();
     </script>
 </body>
 
